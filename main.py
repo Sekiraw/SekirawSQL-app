@@ -1,8 +1,11 @@
 import sys
 
+sys.path.insert(0, '../SekirawSQL/')
+
 import database as db
 import docs as doc
 import pygame
+import hashlib
 
 
 class App:
@@ -31,8 +34,8 @@ class App:
         self.pwd_active = False
 
         self.VALID_INPUT_LIST = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
-                            'r', 's',
-                            't', 'u', 'v', 'w', 'x', 'y', 'z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
+                                 'r', 's',
+                                 't', 'u', 'v', 'w', 'x', 'y', 'z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
 
         self.login_active = True
         self.reg_active = False
@@ -63,7 +66,7 @@ class App:
         text_surface = self.font.render(text if not pwd else nt, True, (255, 255, 255))
         rect = pygame.Rect(x, y, width, 32)
         text_rect = text_surface.get_rect()
-        text_rect.topleft = (x+5, y+5)
+        text_rect.topleft = (x + 5, y + 5)
         pygame.draw.rect(self.screen, color, rect)
         self.screen.blit(text_surface, text_rect)
         return rect
@@ -72,7 +75,7 @@ class App:
         text_surface = self.font.render(text, True, (255, 0, 255))
         rect = pygame.Rect(x, y, 190, 32)
         text_rect = text_surface.get_rect()
-        text_rect.topleft = (x+5, y+5)
+        text_rect.topleft = (x + 5, y + 5)
         pygame.draw.rect(self.screen, (0, 255, 255), rect)
         self.screen.blit(text_surface, text_rect)
         return rect
@@ -88,17 +91,19 @@ class App:
             color_name = self.color_passive
             color_pwd = self.color_passive
 
-        self.draw_text("Login", self.width/6, self.height/7)
-        self.draw_text("Name", self.width/6, self.height/7 + 30)
-        self.draw_text("Password", self.width/6, self.height/7 + 80)
+        self.draw_text("Login", self.width / 6, self.height / 7)
+        self.draw_text("Name", self.width / 6, self.height / 7 + 30)
+        self.draw_text("Password", self.width / 6, self.height / 7 + 80)
         self.name_box = self.draw_text_with_box(self.user_name, self.width / 6, self.height / 7 + 50, color_name)
         self.pwd_box = self.draw_text_with_box(self.password, self.width / 6, self.height / 7 + 100, color_pwd, True)
         self.bt_login = self.button("Login", self.width / 6, self.height / 7 + 150)
         self.go_to_reg = self.button("Register", self.width / 6, self.height / 7 + 200)
 
         if self.error:
-            self.draw_text_with_box(self.error_txt[0] + " " + self.error_txt[1], self.width/6, self.height/7 - 70, (255, 0, 0), False, 280)
-            self.draw_text_with_box(self.error_txt[2] + " " + self.error_txt[3], self.width/6, self.height/7 - 40, (255, 0, 0))
+            self.draw_text_with_box(self.error_txt[0] + " " + self.error_txt[1], self.width / 6, self.height / 7 - 70,
+                                    (255, 0, 0), False, 280)
+            self.draw_text_with_box(self.error_txt[2] + " " + self.error_txt[3], self.width / 6, self.height / 7 - 40,
+                                    (255, 0, 0))
 
     def register_screen(self):
         if self.name_active:
@@ -128,15 +133,19 @@ class App:
         self.back_btn = self.button("Back", self.width / 6, self.height / 7 + 250)
 
         if self.error:
-            self.draw_text_with_box(self.error_txt[0] + " " + self.error_txt[1], self.width/6, self.height/7 - 70, (255, 0, 0))
-            self.draw_text_with_box(self.error_txt[2] + " " + self.error_txt[3], self.width/6, self.height/7 - 40, (255, 0, 0), False, 280)
-
+            self.draw_text_with_box(self.error_txt[0] + " " + self.error_txt[1], self.width / 6, self.height / 7 - 70,
+                                    (255, 0, 0))
+            self.draw_text_with_box(self.error_txt[2] + " " + self.error_txt[3], self.width / 6, self.height / 7 - 40,
+                                    (255, 0, 0), False, 280)
 
     def trigger(self, button):
         if button == self.bt_login:
             if self.user_name != "" and self.password != "":
                 # backend for login
-                self.user = doc.get("INDB app FROM users WHERE username?==?" + self.user_name + " AND password?==?" + self.password)
+                hash = hashlib.md5(self.password.encode())
+                hash = hash.hexdigest()
+                self.user = doc.get(
+                    "INDB app FROM users WHERE username?==?" + self.user_name + " AND password?==?" + hash)
                 if len(self.user) >= 1:
                     print("Logged in!")
                     self.logged_in = True
@@ -151,7 +160,9 @@ class App:
                 check = []
                 check = doc.get("INDB app FROM users WHERE username?==?" + self.user_name)
                 if check == []:
-                    doc.add(self.user_name + "," + self.password + "," + self.age + " INDB app INTO users")
+                    hash = hashlib.md5(self.password.encode())
+                    hash = hash.hexdigest()
+                    doc.add(self.user_name + "," + hash + "," + self.age + " INDB app INTO users")
                     print("Register completed!")
                 else:
                     self.error = True
@@ -232,13 +243,14 @@ class App:
                         if event.key == pygame.K_BACKSPACE:
                             self.password = self.password[:-1]
                         else:
-                            if event.unicode in self.VALID_INPUT_LIST and len(self.password) < 12:
+                            if event.unicode in self.VALID_INPUT_LIST and len(self.password) < 8:
                                 self.password += event.unicode
                     if self.age_active:
                         if event.key == pygame.K_BACKSPACE:
                             self.age = self.age[:-1]
                         else:
-                            if event.unicode in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] and len(self.age) <= 3:
+                            if event.unicode in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] and len(
+                                    self.age) <= 3:
                                 self.age += event.unicode
 
             self.screen.fill((50, 100, 100))
@@ -272,6 +284,9 @@ class LoggedIn:
         # basic font for user typed
         self.base_font = 'font/joystix.ttf'
         self.font = pygame.font.Font(self.base_font, 18)
+        self.VALID_INPUT_LIST = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
+                                 'r', 's',
+                                 't', 'u', 'v', 'w', 'x', 'y', 'z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
 
         self.color_active = pygame.Color('lightskyblue3')
         self.color_passive = pygame.Color('blue')
@@ -280,7 +295,8 @@ class LoggedIn:
         self.username = self.user[0][1]
 
         self.show_pwd = False
-        self.password = self.user[0][2]
+        self.password = "password"  # self.user[0][2]
+        self.edit_password = ""
         self.password_hidden = ""
         for i in range(len(self.password)):
             self.password_hidden += "*"
@@ -288,13 +304,14 @@ class LoggedIn:
         self.age = self.user[0][3]
         self.age_txt = ''
         self.age_active = False
+        self.pass_active = False
         self.logout = False
 
     def draw_text_with_box(self, text, x, y, color, width=190, height=32):
         text_surface = self.font.render(text, True, (255, 255, 255))
         rect = pygame.Rect(x, y, width, height)
         text_rect = text_surface.get_rect()
-        text_rect.topleft = (x+5, y+5)
+        text_rect.topleft = (x + 5, y + 5)
         pygame.draw.rect(self.screen, color, rect)
         self.screen.blit(text_surface, text_rect)
         return rect
@@ -302,19 +319,34 @@ class LoggedIn:
     def user_window(self):
         if self.age_active:
             color_age = self.color_active
+            color_pass = self.color_passive
+        elif self.pass_active:
+            color_pass = self.color_active
+            color_age = self.color_passive
         else:
             color_age = self.color_passive
+            color_pass = self.color_passive
 
-        self.draw_text_with_box("username: " + str(self.username), self.width/6, self.height/7, self.color_passive, 280)
-        self.draw_text_with_box("password: " + str(self.password_hidden) if not self.show_pwd else "password: " + str(self.password), self.width/6, self.height/7 + 50, self.color_passive, 280)
-        self.pass_btn = self.draw_text_with_box("show", self.width/6 + 180, self.height/7 + 100, self.color_passive, 100)
+        self.draw_text_with_box("username: " + str(self.username), self.width / 6, self.height / 7, self.color_passive,
+                                280)
+        self.draw_text_with_box(
+            "password: " + str(self.password_hidden) if not self.show_pwd else "password: " + str(self.password),
+            self.width / 6, self.height / 7 + 50, self.color_passive, 280)
+        self.pass_btn = self.draw_text_with_box("new pass: " + str(self.edit_password), self.width / 6, self.height / 7 + 100, color_pass,
+                                                280)
+        self.update_pass_btn = self.draw_text_with_box("Update pass", self.width / 6 + 90, self.height / 7 + 150,
+                                                      self.color_passive)
 
-        self.draw_text_with_box("age: " + str(self.age), self.width/6, self.height/7 + 150, self.color_passive, 140)
-        self.edit_age = self.draw_text_with_box("new age: " + str(self.age_txt), self.width/6, self.height/7 + 200, color_age, 220)
-        self.update_age_btn = self.draw_text_with_box("Update age", self.width/6, self.height/7 + 250, self.color_passive)
+        self.draw_text_with_box("age: " + str(self.age), self.width / 6, self.height / 7 + 200, self.color_passive, 140)
+        self.edit_age = self.draw_text_with_box("new age: " + str(self.age_txt), self.width / 6, self.height / 7 + 250,
+                                                color_age, 220)
+        self.update_age_btn = self.draw_text_with_box("Update age", self.width / 6, self.height / 7 + 300,
+                                                      self.color_passive)
 
-        self.delete_acc_btn = self.draw_text_with_box("Delete account", self.width/6, self.height/7 + 400, self.color_passive, 220)
-        self.logout_btn = self.draw_text_with_box("logout", self.width/6, self.height/7 + 450, self.color_passive, 110)
+        self.delete_acc_btn = self.draw_text_with_box("Delete account", self.width / 6, self.height / 7 + 400,
+                                                      self.color_passive, 220)
+        self.logout_btn = self.draw_text_with_box("logout", self.width / 6, self.height / 7 + 450, self.color_passive,
+                                                  110)
 
     def trigger(self, button):
         if button == self.update_age_btn:
@@ -323,16 +355,22 @@ class LoggedIn:
             self.update_user()
         if button == self.delete_acc_btn:
             # backend
-            doc.delete("WHERE name?==?" + self.username + " INDB app FROM users", True)
+            doc.delete("WHERE name?==?" + self.username + " INDB app FROM users")
             self.logout = True
+        if button == self.update_pass_btn:
+            hash = hashlib.md5(self.edit_password.encode())
+            hash = hash.hexdigest()
+            doc.update("INDB app INTO users UPDATE password WHERE username?==?" + str(self.username) + " TO " + hash)
+            self.update_user()
         if button == self.logout_btn:
             self.logout = True
 
     def update_user(self):
         # backend
         self.user = doc.get(
-            "INDB app FROM users WHERE username?==?" + self.username + " AND password?==?" + self.password)
-        self.password = self.user[0][2]
+            "INDB app FROM users WHERE username?==?" + self.username)
+        print(self.user)
+        self.edit_password = ""
         self.age = self.user[0][3]
         self.age_txt = ""
         self.age_active = False
@@ -345,25 +383,38 @@ class LoggedIn:
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if self.pass_btn.collidepoint(event.pos):
-                        self.show_pwd = not self.show_pwd
+                        self.pass_active = True
+                        self.age_active = False
                     elif self.edit_age.collidepoint(event.pos):
                         self.age_active = True
+                        self.pass_active = False
                     elif self.update_age_btn.collidepoint(event.pos):
                         self.trigger(self.update_age_btn)
+                    elif self.update_pass_btn.collidepoint(event.pos):
+                        self.trigger(self.update_pass_btn)
                     elif self.delete_acc_btn.collidepoint(event.pos):
                         self.trigger(self.delete_acc_btn)
                     elif self.logout_btn.collidepoint(event.pos):
                         self.trigger(self.logout_btn)
                     else:
                         self.age_active = False
+                        self.pass_active = False
 
                 if event.type == pygame.KEYDOWN:
                     if self.age_active:
                         if event.key == pygame.K_BACKSPACE:
                             self.age_txt = self.age_txt[:-1]
                         else:
-                            if event.unicode in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] and len(self.age_txt) <= 3:
+                            if event.unicode in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] and len(
+                                    self.age_txt) <= 3:
                                 self.age_txt += event.unicode
+                    elif self.pass_active:
+                        if event.key == pygame.K_BACKSPACE:
+                            self.edit_password = self.edit_password[:-1]
+                        else:
+                            if event.unicode in self.VALID_INPUT_LIST and len(self.edit_password) < 8:
+                                self.edit_password += event.unicode
+
             self.screen.fill((255, 100, 100))
 
             self.user_window()
@@ -379,6 +430,8 @@ if __name__ == '__main__':
     # db.create_database("app")
     # doc.create_doc("CRDOC users INDB app", "id: int, username: string, password: string, age: int")
     # doc.add("admin,admin,21 INDB app INTO users")
+    # doc.create_doc(
+    # "CRDOC posts INDB app", "id: int, username: string, title: string, content: string, date: string, likes: int")
     while True:
         app = App()
         success = app.run()
